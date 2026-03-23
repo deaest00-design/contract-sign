@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>디에스트 계약서 서명</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f3f4f6;
+      color: #111;
+      font-family: "Pretendard", sans-serif;
+    }
+
+    .signApp {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    .signLayout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 420px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #dde2e7;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+      min-height: 860px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panelHead {
+      padding: 18px 20px;
+      border-bottom: 1px solid #e6ebf0;
+      background: #fff;
+      flex: 0 0 auto;
+    }
+
+    .panelHead h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .panelHead p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .viewerBody {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 18px;
+      background: #eceff3;
+      display: flex;
+    }
+
+    .viewerScroll {
+      width: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      border: 1px solid #d4dae1;
+      background: #dfe4ea;
+      padding: 18px;
+    }
+
+    .viewerScroll::-webkit-scrollbar,
+    .formScroll::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .viewerScroll::-webkit-scrollbar-thumb,
+    .formScroll::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.18);
+      border-radius: 999px;
+    }
+
+    .pdfPages {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .pdfPageWrap {
+      width: 100%;
+      max-width: 860px;
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      padding: 0;
+    }
+
+    .pdfPageCanvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .formBody {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: 18px;
+      background: #fafbfc;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .formScroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .agreeRow {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #111;
+    }
+
+    .agreeRow input {
+      margin-top: 3px;
+      flex: 0 0 auto;
+    }
+
+    .fieldGroup {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 700;
+      color: #111;
+    }
+
+    .field input {
+      width: 100%;
+      height: 46px;
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #111;
+      background: #fff;
+      font-family: inherit;
+    }
+
+    .readonlyField {
+      background: #f4f6f8 !important;
+    }
+
+    .fieldGuide {
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #666;
+    }
+
+    .signPreviewBox {
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      background: #fff;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+
+    .signPreviewLabel {
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.5;
+      color: #111;
+    }
+
+    .signPreviewArea {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .signPreviewImage {
+      display: none;
+      width: 140px;
+      height: 46px;
+      object-fit: contain;
+    }
+
+    .signPreviewText {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #666;
+    }
+
+    .canvasWrap {
+      border: 1px solid #cfd6dd;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    #signatureCanvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      background: #fff;
+      touch-action: none;
+      cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><g transform='rotate(-20 16 16)'><path d='M7 24 L9 28 L13 26 L25 10 L21 6 Z' fill='%23111'/><path d='M20 5 L23 8' stroke='%23111' stroke-width='2' stroke-linecap='round'/><path d='M7 24 L13 26' stroke='%23ffffff' stroke-width='1.4' stroke-linecap='round'/></g></svg>") 2 28, auto;
+    }
+
+    .buttonRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button,
+    .btnLink {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      height: 46px;
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btnPrimary {
+      background: #111;
+      color: #fff;
+    }
+
+    .btnLine {
+      background: #fff;
+      color: #111;
+      border: 1px solid #cfd6dd;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .statusMsg {
+      margin-top: 14px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #444;
+      white-space: pre-line;
+    }
+
+    @media (max-width: 1080px) {
+      .signLayout {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        min-height: auto;
+      }
+
+      .viewerBody,
+      .formBody {
+        min-height: auto;
+      }
+
+      .viewerScroll {
+        max-height: 70vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="signApp">
+    <div class="signLayout">
+      <div class="panel">
+        <div class="panelHead">
+          <h2>계약서 보기</h2>
+          <p>왼쪽에는 업로드한 계약서 원본 PDF가 그대로 표시됩니다.</p>
+        </div>
+
+        <div class="viewerBody">
+          <div class="viewerScroll">
+            <div class="pdfPages" id="pdfPages"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panelHead">
+          <h2>계약자 서명</h2>
+          <p>계약자 정보와 서명만 입력하시면 마지막 페이지 서명란에 반영됩니다.</p>
+        </div>
+
+        <div class="formBody">
+          <div class="formScroll">
+            <div class="agreeRow">
+              <input type="checkbox" id="agreeCheck" />
+              <label for="agreeCheck">본인은 위 계약 내용을 모두 확인하였으며 이에 동의합니다.</label>
+            </div>
+
+            <div class="fieldGroup">
+              <div class="field">
+                <label for="clientCompany">계약자 상호</label>
+                <input type="text" id="clientCompany" placeholder="상호를 입력해 주세요." />
+              </div>
+            </div>
+
+            <div class="fieldGroup">
+              <div class="field">
+                <label for="clientName">계약자 대표자명</label>
+                <input type="text" id="clientName" placeholder="대표자명을 입력해 주세요." />
+              </div>
+            </div>
+
+            <div class="fieldGroup">
+              <div class="field">
+                <label for="signDate">날짜</label>
+                <input type="text" id="signDate" class="readonlyField" readonly />
+              </div>
+            </div>
+
+            <div class="fieldGroup">
+              <div class="field">
+                <label for="downloadFileName">저장 파일명</label>
+                <input type="text" id="downloadFileName" value="contract_signed" />
+              </div>
+            </div>
+
+            <div class="fieldGroup">
+              <div class="field">
+                <label for="signatureCanvas">서명</label>
+                <div class="canvasWrap">
+                  <canvas id="signatureCanvas"></canvas>
+                </div>
+                <div class="fieldGuide">마우스 또는 터치로 서명하시면 됩니다.</div>
+              </div>
+            </div>
+
+            <div class="signPreviewBox">
+              <div class="signPreviewLabel">서명 미리보기</div>
+              <div class="signPreviewArea">
+                <img id="signPreviewImage" class="signPreviewImage" alt="서명 미리보기" />
+                <span id="signPreviewText" class="signPreviewText">(서명 전)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="buttonRow">
+            <button type="button" class="btnLine" id="clearSignBtn">서명 지우기</button>
+            <button type="button" class="btnPrimary" id="downloadPdfBtn">서명본 PDF 저장 + 메일 발송</button>
+          </div>
+
+          <div class="statusMsg" id="statusMsg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.js";
+
+    /* ===================================================
+       수정할 계약서 관련 항목
+       1) 계약서 내용 자체를 수정하려면 아래 PDF URL의 파일을 교체하면 됩니다.
+       2) 아임웹에서는 업로드한 PDF의 실제 공개 URL로 바꿔 넣으면 됩니다.
+    =================================================== */
+    const CONTRACT_PDF_URL = "https://deaest00-design.github.io/contract-sign/contract.pdf";
+
+    /* ===================================================
+       수정할 서명 위치
+       마지막 페이지 서명 위치가 조금 다르면 아래 숫자만 조정하면 됩니다.
+       현재 값은 업로드한 디에스트 계약서 마지막 페이지 기준으로 맞춘 값입니다.
+    =================================================== */
+    const SIGN_PAGE_INDEX = 6;
+    const SIGN_LAYOUT = {
+      companyX: 80,
+      companyY: 118,
+      companyW: 140,
+      companyH: 26,
+      nameX: 92,
+      nameY: 151,
+      nameW: 110,
+      nameH: 26,
+      signX: 155,
+      signY: 135,
+      signW: 90,
+      signH: 32,
+      dateX: 230,
+      dateY: 30,
+      dateW: 120,
+      dateH: 24
+    };
+
+    /* ===================================================
+       자동 메일 발송 설정
+       EmailJS 대시보드에서 아래 3개 값을 네 계정 값으로 교체해야 작동합니다.
+       템플릿 수신 메일은 deaest00@gmail.com 으로 설정하면 됩니다.
+       템플릿 첨부파일은 Variable Attachment로 만들고
+       parameter name 을 attachment 로,
+       filename 변수는 filename 으로 맞추면 됩니다.
+    =================================================== */
+    const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+    const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
+    const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+    const ADMIN_EMAIL = "deaest00@gmail.com";
+
+    const pdfPages = document.getElementById("pdfPages");
+    const agreeCheck = document.getElementById("agreeCheck");
+    const clientCompany = document.getElementById("clientCompany");
+    const clientName = document.getElementById("clientName");
+    const signDate = document.getElementById("signDate");
+    const downloadFileName = document.getElementById("downloadFileName");
+    const clearSignBtn = document.getElementById("clearSignBtn");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const statusMsg = document.getElementById("statusMsg");
+    const signPreviewImage = document.getElementById("signPreviewImage");
+    const signPreviewText = document.getElementById("signPreviewText");
+
+    const canvas = document.getElementById("signatureCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let originalPdfBytes = null;
+    let isDrawing = false;
+    let hasSignature = false;
+    let lastDownloadedFileName = "";
+
+    function setStatus(text) {
+      statusMsg.textContent = text || "";
+    }
+
+    function setToday() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      signDate.value = `${y}.${m}.${d}`;
+    }
+
+    function resizeCanvas() {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const savedImage = hasSignature ? canvas.toDataURL("image/png") : null;
+
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(ratio, ratio);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 2;
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+
+      if (savedImage) {
+        const img = new Image();
+        img.onload = function () {
+          ctx.drawImage(img, 0, 0, width, height);
+        };
+        img.src = savedImage;
+      }
+    }
+
+    function getPoint(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX !== undefined ? e.clientX : e.touches[0].clientX;
+      const clientY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+      };
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      const point = getPoint(e);
+      isDrawing = true;
+      ctx.beginPath();
+      ctx.moveTo(point.x, point.y);
+    }
+
+    function moveDraw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const point = getPoint(e);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      hasSignature = true;
+      syncSignaturePreview();
+    }
+
+    function endDraw() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      ctx.closePath();
+    }
+
+    function clearSignature() {
+      hasSignature = false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      resizeCanvas();
+      syncSignaturePreview();
+      setStatus("");
+    }
+
+    function syncSignaturePreview() {
+      if (!hasSignature) {
+        signPreviewImage.src = "";
+        signPreviewImage.style.display = "none";
+        signPreviewText.textContent = "(서명 전)";
+        return;
+      }
+
+      signPreviewImage.src = canvas.toDataURL("image/png");
+      signPreviewImage.style.display = "block";
+      signPreviewText.textContent = "";
+    }
+
+    async function loadPdf() {
+      const response = await fetch(CONTRACT_PDF_URL);
+      if (!response.ok) {
+        throw new Error("PDF 파일을 불러오지 못했습니다.");
+      }
+
+      originalPdfBytes = await response.arrayBuffer();
+
+      const loadingTask = pdfjsLib.getDocument({ data: originalPdfBytes });
+      const pdf = await loadingTask.promise;
+
+      pdfPages.innerHTML = "";
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.45 });
+
+        const wrap = document.createElement("div");
+        wrap.className = "pdfPageWrap";
+
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.className = "pdfPageCanvas";
+
+        const pageCtx = pageCanvas.getContext("2d");
+        pageCanvas.width = viewport.width;
+        pageCanvas.height = viewport.height;
+
+        wrap.appendChild(pageCanvas);
+        pdfPages.appendChild(wrap);
+
+        await page.render({
+          canvasContext: pageCtx,
+          viewport
+        }).promise;
+      }
+    }
+
+    async function createTextImage(text, width, height, options = {}) {
+      await document.fonts.ready;
+
+      const tempCanvas = document.createElement("canvas");
+      const tempCtx = tempCanvas.getContext("2d");
+
+      tempCanvas.width = width * 2;
+      tempCanvas.height = height * 2;
+
+      tempCtx.scale(2, 2);
+      tempCtx.clearRect(0, 0, width, height);
+      tempCtx.fillStyle = options.color || "#111";
+      tempCtx.textBaseline = "middle";
+      tempCtx.textAlign = options.align || "left";
+      tempCtx.font = `${options.weight || 500} ${options.size || 18}px Pretendard`;
+
+      const x = options.align === "center" ? width / 2 : (options.x || 0);
+      const y = height / 2;
+
+      tempCtx.fillText(text, x, y);
+
+      return tempCanvas.toDataURL("image/png");
+    }
+
+    async function createSignedPdfBytes() {
+      if (!agreeCheck.checked) {
+        throw new Error("동의 체크를 진행해 주세요.");
+      }
+
+      if (!clientCompany.value.trim()) {
+        throw new Error("계약자 상호를 입력해 주세요.");
+      }
+
+      if (!clientName.value.trim()) {
+        throw new Error("계약자 대표자명을 입력해 주세요.");
+      }
+
+      if (!hasSignature) {
+        throw new Error("서명을 입력해 주세요.");
+      }
+
+      if (!originalPdfBytes) {
+        throw new Error("원본 PDF가 준비되지 않았습니다.");
+      }
+
+      const pdfDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
+      const pages = pdfDoc.getPages();
+
+      if (pages.length <= SIGN_PAGE_INDEX) {
+        throw new Error("서명 페이지를 찾지 못했습니다.");
+      }
+
+      const targetPage = pages[SIGN_PAGE_INDEX];
+      const pageWidth = targetPage.getWidth();
+
+      const signatureBytes = await fetch(canvas.toDataURL("image/png")).then(r => r.arrayBuffer());
+      const signatureImage = await pdfDoc.embedPng(signatureBytes);
+
+      const companyImageUrl = await createTextImage(clientCompany.value.trim(), 280, 52, {
+        size: 22,
+        weight: 500,
+        x: 0
+      });
+
+      const nameImageUrl = await createTextImage(clientName.value.trim(), 220, 52, {
+        size: 22,
+        weight: 500,
+        x: 0
+      });
+
+      const dateImageUrl = await createTextImage(signDate.value.trim(), 240, 44, {
+        size: 20,
+        weight: 500,
+        align: "center"
+      });
+
+      const companyImageBytes = await fetch(companyImageUrl).then(r => r.arrayBuffer());
+      const nameImageBytes = await fetch(nameImageUrl).then(r => r.arrayBuffer());
+      const dateImageBytes = await fetch(dateImageUrl).then(r => r.arrayBuffer());
+
+      const companyImage = await pdfDoc.embedPng(companyImageBytes);
+      const nameImage = await pdfDoc.embedPng(nameImageBytes);
+      const dateImage = await pdfDoc.embedPng(dateImageBytes);
+
+      targetPage.drawImage(companyImage, {
+        x: SIGN_LAYOUT.companyX,
+        y: SIGN_LAYOUT.companyY,
+        width: SIGN_LAYOUT.companyW,
+        height: SIGN_LAYOUT.companyH
+      });
+
+      targetPage.drawImage(nameImage, {
+        x: SIGN_LAYOUT.nameX,
+        y: SIGN_LAYOUT.nameY,
+        width: SIGN_LAYOUT.nameW,
+        height: SIGN_LAYOUT.nameH
+      });
+
+      targetPage.drawImage(signatureImage, {
+        x: SIGN_LAYOUT.signX,
+        y: SIGN_LAYOUT.signY,
+        width: SIGN_LAYOUT.signW,
+        height: SIGN_LAYOUT.signH
+      });
+
+      targetPage.drawImage(dateImage, {
+        x: (pageWidth - SIGN_LAYOUT.dateW) / 2,
+        y: SIGN_LAYOUT.dateY,
+        width: SIGN_LAYOUT.dateW,
+        height: SIGN_LAYOUT.dateH
+      });
+
+      return await pdfDoc.save();
+    }
+
+    function buildFileName() {
+      const baseName = downloadFileName.value.trim() || "contract_signed";
+      const safeBaseName = baseName.replace(/[^\w가-힣-]/g, "_");
+      const safeName = clientName.value.trim().replace(/[^\w가-힣-]/g, "_") || "sign";
+      const dateStamp = signDate.value.replace(/\./g, "");
+      return `${safeBaseName}_${safeName}_${dateStamp}.pdf`;
+    }
+
+    function downloadPdf(pdfBytes) {
+      lastDownloadedFileName = buildFileName();
+
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = lastDownloadedFileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function arrayBufferToBase64(arrayBuffer) {
+      let binary = "";
+      const bytes = new Uint8Array(arrayBuffer);
+      const chunkSize = 0x8000;
+
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+
+      return btoa(binary);
+    }
+
+    async function sendSignedPdfEmail(pdfBytes) {
+      if (!EMAILJS_PUBLIC_KEY || !EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID) {
+        throw new Error("EmailJS 설정값을 먼저 입력해 주세요.");
+      }
+
+      const base64Pdf = arrayBufferToBase64(pdfBytes);
+      const fileName = buildFileName();
+
+      const templateParams = {
+        to_email: ADMIN_EMAIL,
+        client_company: clientCompany.value.trim(),
+        client_name: clientName.value.trim(),
+        sign_date: signDate.value.trim(),
+        filename: fileName,
+        attachment: base64Pdf
+      };
+
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, {
+        publicKey: EMAILJS_PUBLIC_KEY
+      });
+    }
+
+    clearSignBtn.addEventListener("click", clearSignature);
+
+    downloadPdfBtn.addEventListener("click", async function () {
+      try {
+        setStatus("서명본 PDF를 생성하고 있습니다.");
+        const pdfBytes = await createSignedPdfBytes();
+
+        setStatus("PDF 저장 중입니다.");
+        downloadPdf(pdfBytes);
+
+        setStatus("관리자 메일로 발송 중입니다.");
+        await sendSignedPdfEmail(pdfBytes);
+
+        setStatus(`PDF 저장 및 관리자 메일 발송이 완료되었습니다.\n파일명: ${lastDownloadedFileName}\n수신 메일: ${ADMIN_EMAIL}`);
+      } catch (err) {
+        setStatus(err.message || "오류가 발생했습니다.");
+      }
+    });
+
+    canvas.addEventListener("mousedown", startDraw);
+    canvas.addEventListener("mousemove", moveDraw);
+    window.addEventListener("mouseup", endDraw);
+
+    canvas.addEventListener("touchstart", startDraw, { passive: false });
+    canvas.addEventListener("touchmove", moveDraw, { passive: false });
+    window.addEventListener("touchend", endDraw);
+
+    window.addEventListener("resize", resizeCanvas);
+
+    (async function init() {
+      setToday();
+      resizeCanvas();
+      syncSignaturePreview();
+
+      emailjs.init({
+        publicKey: EMAILJS_PUBLIC_KEY
+      });
+
+      try {
+        setStatus("PDF를 불러오고 있습니다.");
+        await loadPdf();
+        setStatus("");
+      } catch (err) {
+        setStatus(err.message || "PDF 로드 중 오류가 발생했습니다.");
+      }
+    })();
+  </script>
+</body>
+</html>
